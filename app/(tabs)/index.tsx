@@ -1,33 +1,39 @@
+// HomeScreen.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, Image } from 'react-native';
-import axios from 'axios';
+import { View, Text, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = ''
+const SUPABASE_ANON_KEY = ''
+
+// Crear una instancia de Supabase
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function HomeScreen() {
-  const [pokemonList, setPokemonList] = useState([]);
+  const [moviesList, setMoviesList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPokemon();
+    fetchMovies();
   }, []);
 
-  const fetchPokemon = async () => {
+  const fetchMovies = async () => {
     try {
-      // Obtener la lista de Pokémon
-      const response = await axios.get('https://pokeapi.co/api/v2/pokemon?limit=40');
-      const results = response.data.results;
+      // Obtener la lista de películas desde Supabase
+      let { data: movies, error } = await supabase
+        .from('movies')
+        .select('*');
 
-      // Obtener detalles de cada Pokémon
-      const detailedPokemon = await Promise.all(
-        results.map(async (pokemon) => {
-          const pokemonDetails = await axios.get(pokemon.url);
-          return pokemonDetails.data;
-        })
-      );
+        console.log(movies, error);
 
-      setPokemonList(detailedPokemon);
+      if (error) {
+        throw error;
+      }
+
+      setMoviesList(movies);
       setLoading(false);
     } catch (error) {
-      console.error(error);
+      console.error('Error al obtener los datos de Supabase:', error);
     }
   };
 
@@ -36,7 +42,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color="#ff0000" />
-        <Text>Cargando Pokémon...</Text>
+        <Text>Cargando películas...</Text>
       </View>
     );
   }
@@ -44,18 +50,17 @@ export default function HomeScreen() {
   // Función para renderizar cada elemento de la lista
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
-      <Image source={{ uri: item.sprites.front_default }} style={styles.pokemonImage} />
-      <Text style={styles.pokemonName}>{item.name}</Text>
+      <Text style={styles.movieName}>{item.name}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pokédex</Text>
+      <Text style={styles.title}>Lista de Películas</Text>
       <FlatList
-        data={pokemonList}
+        data={moviesList}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => index.toString()}
       />
     </View>
   );
@@ -80,17 +85,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
   },
-  pokemonImage: {
-    width: 60,
-    height: 60,
-  },
-  pokemonName: {
+  movieName: {
     fontSize: 20,
-    marginLeft: 20,
-    textTransform: 'capitalize',
   },
 });
